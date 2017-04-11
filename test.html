@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        test websocket
+    </title>
+</head>
+<style type="text/css">
+</style>
+
+<body>
+    <input id="msg" type="text" name="" placeholder="test websocket">
+    <br> 发送至
+    <input id="to" type="text" name="" placeholder="test websocket">
+    <br>
+    <button onclick="sendMessageToUser()">私信</button>
+    <button onclick="sendMessageToGroup()">群聊</button>
+    <footer>
+        &copy;TooWhite
+    </footer>
+</body>
+<script type="text/javascript">
+if (typeof(WebSocket) == 'undefined') {
+    alert('你的浏览器不支持 WebSocket ，推荐使用Google Chrome 或者 Mozilla Firefox');
+}
+var user_id = prompt("用户名", "");
+if (user_id == "") {
+    user_id = "user" + Date.parse(new Date());
+}
+var group_id = prompt("分组", "all");;
+var uri = 'ws://10.65.106.110:9999';
+createSocket(uri);
+/**
+ * socket建立
+ */
+function createSocket(uri) {
+    so = new WebSocket(uri);
+    console.log(so);
+
+    so.onopen = function() {
+        if (so.readyState == 1) {
+            console.log('===user register===', user_id);
+            so.send('{"MsgType":0,"UserId":"' + user_id + '","GroupId":"' + group_id + '"}');
+        }
+    }
+
+    so.onclose = function() {
+        so = false;
+    }
+
+    so.onmessage = function(recv_msg) {
+        console.log('===recv_msg===', recv_msg);
+        // console.log('recv_msg.type------' + recv_msg.type);
+    }
+}
+/**
+ * 发送消息给用户
+ */
+function sendMessageToUser() {
+    var to_user = document.getElementById('to').value;
+    var content = document.getElementById('msg').value;
+    so.send('{"MsgType":1,"UserId":"' + user_id + '","GroupId":"' + group_id + '","Content":{"ContentType":0,"From":"' + user_id + '","ToUser":"' + to_user + '","Data":"' + content + '"}}')
+    return false;
+}
+/**
+ * 发送消息给分组
+ */
+function sendMessageToGroup() {
+    var to_group = document.getElementById('to').value;
+    var content = document.getElementById('msg').value;
+    so.send('{"MsgType":1,"UserId":"' + user_id + '","GroupId":"' + group_id + '","Content":{"ContentType":1,"From":"' + user_id + '","ToGroup":"' + to_group + '","Data":"' + content + '"}}')
+    return false;
+}
+</script>
+<!-- type Msg struct {
+	MsgType int
+	UserId  string
+	GroupId string
+	Content Content
+}
+type Content struct {
+	ContentType int
+	From        string
+	ToUser      string
+	ToGroup     string
+	Data        string
+} -->
+
+</html>
