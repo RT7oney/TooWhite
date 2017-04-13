@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -36,27 +37,13 @@ func (serv *Server) run() {
 			}
 		case content := <-serv.broadcast:
 			fmt.Println("所有的客户端", serv.clients)
-			for client := range serv.clients {
-				/*===========================*/
-				// fmt.Println("开始分段广播", client)
-				message := content.Data
-				fmt.Println("message from servub", message)
-				if content.ContentType == 0 {
-					// 广播给用户
-					if content.ToUser == client.uid {
-						message = content.From + "对" + content.ToUser + "说：" + message
-						select {
-						case client.send <- []byte(message):
-						default:
-							close(client.send)
-							delete(serv.clients, client)
-						}
-					}
-				} else {
-					// 广播给分组
-					if content.ToGroup == client.gid {
-						message = content.From + "在群" + content.ToGroup + "说：" + message
-						fmt.Println("开始分组广播", message)
+			fmt.Println("TARGET", content.Target)
+			// 根据content传过来的需要广播的target来遍历广播
+			if content.Target != nil {
+				for _, client := range content.Target {
+					message, _ := json.Marshal(content.Data)
+					if _, ok := serv.clients[client]; ok {
+						fmt.Println("被广播的用户", client)
 						select {
 						case client.send <- []byte(message):
 						default:
@@ -65,8 +52,6 @@ func (serv *Server) run() {
 						}
 					}
 				}
-
-				/*===========================*/
 			}
 		}
 	}

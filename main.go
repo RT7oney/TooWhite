@@ -6,22 +6,18 @@ import (
 	"net/http"
 )
 
-/*===========广播的协议===============*/
 type Msg struct {
 	MsgType int
-	UserId  string
-	GroupId string
-	Content Content
+	From    string
+	Target  string
+	Data    string
 }
 type Content struct {
 	ContentType int
-	From        string
-	ToUser      string
-	ToGroup     string
-	Data        string
+	From        *Client
+	Target      []*Client
+	Data        interface{}
 }
-
-/*==================================*/
 
 func main() {
 	serv := newServer()
@@ -29,7 +25,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(serv, w, r)
 	})
-	err := http.ListenAndServe(":9999", nil)
+	err := http.ListenAndServe(":1234", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

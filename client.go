@@ -1,7 +1,9 @@
 package main
 
 import (
-	"bytes"
+	"TooWhite/db"
+	"TooWhite/helper"
+	// "bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -20,11 +22,6 @@ const (
 	maxMessageSize = 512
 )
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -40,9 +37,8 @@ type Client struct {
 
 	send chan []byte
 
-	uid string
+	uid string //存放用户的唯一标示
 
-	gid string
 }
 
 func (c *Client) readPump() {
@@ -61,28 +57,107 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		fmt.Println("读取心跳", string(message))
 		/*==========================*/
 		var m Msg
 		err = json.Unmarshal(message, &m)
 		fmt.Println("读取到的Msg结构体", m)
-		if m.GroupId != "" {
-			c.gid = m.GroupId
+		if m.From != "" {
+			if m.MsgType == 0 {
+				// 加入用户进入在线状态
+				c.uid = m.From
+				user := &db.User{
+					Name:  m.Data,
+					Token: m.From,
+				}
+				user = db.UserJoin(user)
+				broadcast_group := make([]*Client, 0)
+				for client, _ := range c.serv.clients {
+					if client.uid == user.Token {
+						broadcast_group = append(broadcast_group, client)
+					}
+				}
+				var content Content
+				content.From = c
+				content.Target = broadcast_group
+				content.Data = user
+				c.serv.broadcast <- &content
+			} else if m.MsgType == 1 {
+				// 增加一个分组
+				gtoken := helper.MakeGroupToken(m.From)
+				user := db.GetUserByToken(m.From)
+				group := &db.Group{
+					Name:    m.Data,
+					Token:   gtoken,
+					Creater: user.Token,
+					Users:   []string{user.Token},
+				}
+				db.NewGroup(group)
+				broadcast_group := make([]*Client, 0)
+				for client, _ := range c.serv.clients {
+					if client.uid == m.From {
+						broadcast_group = append(broadcast_group, client)
+					}
+				}
+				var content Content
+				content.From = c
+				content.Target = broadcast_group
+				content.Data = group
+				c.serv.broadcast <- &content
+			} else if m.MsgType == 2 {
+				// 用户加入一个分组
+				user := db.GetUserByToken(m.From)
+				group := db.GetGroupByToken(m.Data)
+				db.UserJoinGroup(user, group)
+				broadcast_group := make([]*Client, 0)
+				for client, _ := range c.serv.clients {
+					group = db.GetGroupByToken(m.Data)
+					for _, user := range group.Users {
+						if client.uid == user {
+							broadcast_group = append(broadcast_group, client)
+						}
+					}
+				}
+				var content Content
+				content.From = c
+				content.Target = broadcast_group
+				content.Data = "欢迎" + user.Name + "加入" + group.Name + "分组"
+				c.serv.broadcast <- &content
+			} else if m.MsgType == 3 {
+				// 私聊
+				from_user := db.GetUserByToken(m.From)
+				to_user := db.GetUserByToken(m.Target)
+				broadcast_group := make([]*Client, 0)
+				for client, _ := range c.serv.clients {
+					if client.uid == to_user.Token {
+						broadcast_group = append(broadcast_group, client)
+					}
+				}
+				var content Content
+				content.From = c
+				content.Target = broadcast_group
+				content.Data = from_user.Name + "对" + to_user.Name + "说：" + m.Data
+				c.serv.broadcast <- &content
+			} else if m.MsgType == 4 {
+				// 私聊
+				from_user := db.GetUserByToken(m.From)
+				to_group := db.GetGroupByToken(m.Target)
+				broadcast_group := make([]*Client, 0)
+				for client, _ := range c.serv.clients {
+					for _, user := range to_group.Users {
+						if client.uid == user {
+							broadcast_group = append(broadcast_group, client)
+						}
+					}
+				}
+				var content Content
+				content.From = c
+				content.Target = broadcast_group
+				content.Data = from_user.Name + "在群" + to_group.Name + "说：" + m.Data
+				c.serv.broadcast <- &content
+			}
 		} else {
-			c.gid = "all"
+			return
 		}
-		c.uid = m.UserId
-		if m.MsgType == 0 {
-			m.Content.Data = "大家好，我是" + m.UserId
-			m.Content.From = c.uid
-			m.Content.ContentType = 1 // 广播给分组
-			m.Content.ToGroup = "all"
-			c.serv.broadcast <- &m.Content
-		} else {
-			c.serv.broadcast <- &m.Content
-		}
-		/*==========================*/
 	}
 }
 
@@ -95,8 +170,6 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			fmt.Println("写给谁", c.send)
-			fmt.Println("写的消息内容为", message)
 
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
@@ -112,7 +185,7 @@ func (c *Client) writePump() {
 
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
+				// w.Write(newline)
 				w.Write(<-c.send)
 			}
 

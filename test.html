@@ -8,15 +8,31 @@
     </title>
 </head>
 <style type="text/css">
+div {
+    width: 100%;
+    height: 100px;
+    text-align: center;
+    border: 1px solid black;
+}
 </style>
 
 <body>
-    <input id="msg" type="text" name="" placeholder="test websocket">
-    <br> 发送至
-    <input id="to" type="text" name="" placeholder="test websocket">
-    <br>
-    <button onclick="sendMessageToUser()">私信</button>
-    <button onclick="sendMessageToGroup()">群聊</button>
+    <div>
+        <input id="msg" type="text" name="" placeholder="消息">
+        <br> 发送至
+        <input id="to" type="text" name="" placeholder="目标">
+        <br>
+        <button onclick="sendMessageToUser()">私信</button>
+        <button onclick="sendMessageToGroup()">群聊</button>
+    </div>
+    <div>
+        <input id="add-group" type="text">
+        <button onclick="addGroup()">增加分组</button>
+    </div>
+    <div>
+        <input id="user-join-group" type="text">
+        <button onclick="userJoinGroup()">用户加入分组</button>
+    </div>
     <footer>
         &copy;TooWhite
     </footer>
@@ -25,12 +41,12 @@
 if (typeof(WebSocket) == 'undefined') {
     alert('你的浏览器不支持 WebSocket ，推荐使用Google Chrome 或者 Mozilla Firefox');
 }
-var user_id = prompt("用户名", "");
+var user_id = prompt("用户唯一TOKEN", "");
 if (user_id == "") {
     user_id = "user" + Date.parse(new Date());
 }
-var group_id = prompt("分组", "all");;
-var uri = 'ws://10.65.106.110:9999';
+var user_name = prompt("用户名", "all");;
+var uri = 'ws://10.65.106.94:1234';
 createSocket(uri);
 /**
  * socket建立
@@ -42,7 +58,7 @@ function createSocket(uri) {
     so.onopen = function() {
         if (so.readyState == 1) {
             console.log('===user register===', user_id);
-            so.send('{"MsgType":0,"UserId":"' + user_id + '","GroupId":"' + group_id + '"}');
+            so.send('{"MsgType":0,"From":"' + user_id + '","Target":"","Data":"' + user_name + '"}');
         }
     }
 
@@ -61,7 +77,7 @@ function createSocket(uri) {
 function sendMessageToUser() {
     var to_user = document.getElementById('to').value;
     var content = document.getElementById('msg').value;
-    so.send('{"MsgType":1,"UserId":"' + user_id + '","GroupId":"' + group_id + '","Content":{"ContentType":0,"From":"' + user_id + '","ToUser":"' + to_user + '","Data":"' + content + '"}}')
+    so.send('{"MsgType":3,"From":"' + user_id + '","Target":"' + to_user + '","Data":"'+ content +'"}');
     return false;
 }
 /**
@@ -70,7 +86,23 @@ function sendMessageToUser() {
 function sendMessageToGroup() {
     var to_group = document.getElementById('to').value;
     var content = document.getElementById('msg').value;
-    so.send('{"MsgType":1,"UserId":"' + user_id + '","GroupId":"' + group_id + '","Content":{"ContentType":1,"From":"' + user_id + '","ToGroup":"' + to_group + '","Data":"' + content + '"}}')
+    so.send('{"MsgType":4,"From":"' + user_id + '","Target":"' + to_group + '","Data":"'+ content +'"}');
+    return false;
+}
+/**
+ * 增加分组
+ */
+function addGroup() {
+    var group = document.getElementById('add-group').value;
+    so.send('{"MsgType":1,"From":"' + user_id + '","Target":"","Data":"' + group + '"}')
+    return false;
+}
+/**
+ * 用户加入分组
+ */
+function userJoinGroup() {
+    var group = document.getElementById('user-join-group').value;
+    so.send('{"MsgType":2,"From":"' + user_id + '","Target":"","Data":"' + group + '"}')
     return false;
 }
 </script>
