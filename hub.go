@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TooWhite/db"
 	"encoding/json"
 	"fmt"
 )
@@ -34,6 +35,7 @@ func (serv *Server) run() {
 			if _, ok := serv.clients[client]; ok {
 				delete(serv.clients, client)
 				close(client.send)
+				db.UserOffLine(client.uid)
 			}
 		case content := <-serv.broadcast:
 			fmt.Println("所有的客户端", serv.clients)
