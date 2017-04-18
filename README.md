@@ -53,3 +53,15 @@ so.send('{"MsgType":0,"From":"XXXXX","Target":"XXXX","Data":"XXXX"}');
 * target 传入分组在系统中的唯一标识ID
 * data 消息内容
 
+### 删除分组
+* msgtype 值为5
+* from 传入用户在系统中的唯一标识ID
+* target null
+* data 需要删除的分组的名称（需要该用户为分组的创建人）
+
+### 用户离开分组
+* msgtype 值为6
+* from 传入用户在系统中的唯一标识ID
+* target null
+* data 需要离开的分组的名称
+

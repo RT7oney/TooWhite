@@ -102,7 +102,7 @@ func (c *Client) readPump() {
 				// 用户加入一个分组
 				user := db.GetUserByToken(m.From)
 				group := db.GetGroupByToken(m.Data)
-				db.UserJoinGroup(user, group)
+				db.UserJoinGroup(m.From, m.Data)
 				broadcast_group := make([]*Client, 0)
 				var content Content
 				content.From = c
@@ -181,6 +181,50 @@ func (c *Client) readPump() {
 								SendTo:   user_token,
 								SendTime: time.Now(),
 								Content:  from_user.Name + "在群" + to_group.Name + "说：" + m.Data,
+							}
+							db.SaveUserOffLineMsg(offline_msg)
+						}
+					}
+				}
+			} else if m.MsgType == 5 {
+				// 删除分组
+				broadcast_group := make([]*Client, 0)
+				broadcast_group = append(broadcast_group, c)
+				var content Content
+				content.From = c
+				content.Target = broadcast_group
+				if db.DelGroup(m.From, m.Data) {
+					content.Data = "删除成功"
+				} else {
+					content.Data = "删除失败"
+				}
+				c.serv.broadcast <- &content
+			} else if m.MsgType == 6 {
+				// 用户离开分组
+				user := db.GetUserByToken(m.From)
+				group := db.GetGroupByToken(m.Data)
+				db.UserOffGroup(m.From, m.Data)
+				broadcast_group := make([]*Client, 0)
+				var content Content
+				content.From = c
+				content.Data = user.Name + "离开了" + group.Name + "分组"
+				for client, _ := range c.serv.clients {
+					group = db.GetGroupByToken(m.Data)
+					for _, user_token := range group.Users {
+						if db.IsUserOnline(user_token) {
+							// 用户在线
+							if client.uid == user_token {
+								broadcast_group = append(broadcast_group, client)
+							}
+							content.Target = broadcast_group
+							c.serv.broadcast <- &content
+						} else {
+							// 用户离线
+							offline_msg := &db.OffLineMsg{
+								SendFrom: m.From,
+								SendTo:   user_token,
+								SendTime: time.Now(),
+								Content:  user.Name + "离开了" + group.Name + "分组",
 							}
 							db.SaveUserOffLineMsg(offline_msg)
 						}

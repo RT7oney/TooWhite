@@ -83,22 +83,40 @@ func NewGroup(group *Group) {
 	}
 }
 
-func UserJoinGroup(user *User, group *Group) {
-	if !IsUserInGroup(user, group) {
+func DelGroup(user_token, group_token string) bool {
+	session := newDB()
+	defer session.Close()
+	c := session.DB(conf.DB_DATABASE).C("group")
+	result := Group{}
+	err := c.Find(bson.M{"token": group_token}).One(&result)
+	if err == nil {
+		if result.Creater == user_token {
+			for _, member := range result.Users {
+				UserOffGroup(member, group_token)
+			}
+			c.Remove(bson.M{"token": group_token})
+			return true
+		}
+	}
+	return false
+}
+
+func UserJoinGroup(user_token, group_token string) {
+	if !IsUserInGroup(user_token, group_token) {
 		session := newDB()
 		defer session.Close()
 		c := session.DB(conf.DB_DATABASE).C("group")
-		err := c.Update(bson.M{"token": group.Token},
+		err := c.Update(bson.M{"token": group_token},
 			bson.M{"$push": bson.M{
-				"users": user.Token,
+				"users": user_token,
 			}})
 		if err != nil {
 			fmt.Println("GroupJoin-97", err)
 		}
 		c = session.DB(conf.DB_DATABASE).C("user")
-		err = c.Update(bson.M{"token": user.Token},
+		err = c.Update(bson.M{"token": user_token},
 			bson.M{"$push": bson.M{
-				"groups": group.Token,
+				"groups": group_token,
 			}})
 		if err != nil {
 			fmt.Println("GroupJoin-105", err)
@@ -109,14 +127,40 @@ func UserJoinGroup(user *User, group *Group) {
 
 }
 
-func IsUserInGroup(user *User, group *Group) bool {
+func UserOffGroup(user_token, group_token string) {
+	if IsUserInGroup(user_token, group_token) {
+		session := newDB()
+		defer session.Close()
+		c := session.DB(conf.DB_DATABASE).C("group")
+		err := c.Update(bson.M{"token": group_token},
+			bson.M{"$pull": bson.M{
+				"users": user_token,
+			}})
+		if err != nil {
+			fmt.Println("UserOffGroup-97", err)
+		}
+		c = session.DB(conf.DB_DATABASE).C("user")
+		err = c.Update(bson.M{"token": user_token},
+			bson.M{"$pull": bson.M{
+				"groups": group_token,
+			}})
+		if err != nil {
+			fmt.Println("UserOffGroup-105", err)
+		}
+	} else {
+		fmt.Println("UserOffGroup-107", "用户已经不存在")
+	}
+
+}
+
+func IsUserInGroup(user_token, group_token string) bool {
 	session := newDB()
 	defer session.Close()
 	c := session.DB(conf.DB_DATABASE).C("group")
 	result := Group{}
-	c.Find(bson.M{"token": group.Token}).One(&result)
-	for _, user_token := range result.Users {
-		if user.Token == user_token {
+	c.Find(bson.M{"token": group_token}).One(&result)
+	for _, member := range result.Users {
+		if user_token == member {
 			return true
 		}
 	}
