@@ -38,16 +38,13 @@ func (serv *Server) run() {
 				db.UserOffLine(client.uid)
 			}
 		case content := <-serv.broadcast:
-			fmt.Println("所有的客户端", serv.clients)
-			fmt.Println("TARGET", content.Target)
 			// 根据content传过来的需要广播的target来遍历广播
+			message, _ := json.Marshal(content.Data)
 			if content.Target != nil {
 				for _, client := range content.Target {
-					message, _ := json.Marshal(content.Data)
 					if _, ok := serv.clients[client]; ok {
-						fmt.Println("被广播的用户", client)
 						select {
-						case client.send <- []byte(message):
+						case client.send <- message:
 						default:
 							close(client.send)
 							delete(serv.clients, client)

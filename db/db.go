@@ -28,7 +28,7 @@ type OffLineMsg struct {
 	SendFrom string
 	SendTo   string
 	SendTime time.Time
-	Content  string
+	Content  interface{}
 }
 
 func newDB() *mgo.Session {
