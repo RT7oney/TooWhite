@@ -24,7 +24,6 @@ type User struct {
 }
 
 type OffLineMsg struct {
-	MsgType  int
 	SendFrom string
 	SendTo   string
 	SendTime time.Time

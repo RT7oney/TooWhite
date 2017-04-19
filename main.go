@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type Msg struct {
+type Request struct {
 	MsgType int
 	From    string
 	Target  string
@@ -17,6 +17,11 @@ type Content struct {
 	From        *Client
 	Target      []*Client
 	Data        interface{}
+}
+type Response struct {
+	Code int
+	Msg  string
+	Data interface{}
 }
 
 func main() {

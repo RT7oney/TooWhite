@@ -57,11 +57,11 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		var m Msg
+		var m Request
+		var res Response
+		var user_token_group []string
 		json.Unmarshal(message, &m)
 		fmt.Println("读取到的Msg结构体", m)
-		var datas []interface{}
-		var user_token_group []string
 		if m.From != "" {
 			if m.MsgType == 0 {
 				// 加入用户进入在线状态
@@ -71,11 +71,11 @@ func (c *Client) readPump() {
 					Token: m.From,
 				}
 				user = db.UserJoin(user)
-				datas = append(datas, "用户登录成功")
 				user_token_group = append(user_token_group, m.From)
 				offline_msgs := db.GetUserOffLineMsg(m.From)
-				for _, offline_msg := range offline_msgs {
-					datas = append(datas, offline_msg.Content)
+				res.Msg = "用户登录成功"
+				res.Data = offline_msgs
+				for range offline_msgs {
 					db.DelUserOffLineMsg(m.From)
 				}
 			} else if m.MsgType == 1 {
@@ -90,13 +90,14 @@ func (c *Client) readPump() {
 				}
 				db.NewGroup(group)
 				user_token_group = append(user_token_group, m.From)
-				datas = append(datas, group)
+				res.Msg = "分组创建成功"
+				res.Data = group
 			} else if m.MsgType == 2 {
 				// 用户加入一个分组
 				user := db.GetUserByToken(m.From)
 				group := db.GetGroupByToken(m.Data)
 				db.UserJoinGroup(m.From, m.Data)
-				datas = append(datas, "欢迎"+user.Name+"加入"+group.Name+"分组")
+				res.Msg = "欢迎" + user.Name + "加入" + group.Name + "分组"
 				group = db.GetGroupByToken(m.Data)
 				user_token_group = group.Users
 			} else if m.MsgType == 3 {
@@ -104,27 +105,27 @@ func (c *Client) readPump() {
 				from_user := db.GetUserByToken(m.From)
 				to_user := db.GetUserByToken(m.Target)
 				user_token_group = []string{m.From, m.Target}
-				datas = append(datas, from_user.Name+"对"+to_user.Name+"说："+m.Data)
+				res.Msg = from_user.Name + "对" + to_user.Name + "说：" + m.Data
 			} else if m.MsgType == 4 {
 				// 群聊
 				from_user := db.GetUserByToken(m.From)
 				to_group := db.GetGroupByToken(m.Target)
-				datas = append(datas, from_user.Name+"在群"+to_group.Name+"说："+m.Data)
+				res.Msg = from_user.Name + "在群" + to_group.Name + "说：" + m.Data
 				user_token_group = to_group.Users
 			} else if m.MsgType == 5 {
 				// 删除分组
 				user_token_group = append(user_token_group, m.From)
 				if db.DelGroup(m.From, m.Data) {
-					datas = append(datas, "删除成功")
+					res.Msg = "删除成功"
 				} else {
-					datas = append(datas, "删除失败")
+					res.Msg = "删除失败"
 				}
 			} else if m.MsgType == 6 {
 				// 用户离开分组
 				user := db.GetUserByToken(m.From)
 				group := db.GetGroupByToken(m.Data)
 				db.UserOffGroup(m.From, m.Data)
-				datas = append(datas, user.Name+"离开了"+group.Name+"分组")
+				res.Msg = user.Name + "离开了" + group.Name + "分组"
 				user_token_group = group.Users
 			}
 			var client_group []*Client
@@ -139,23 +140,19 @@ func (c *Client) readPump() {
 							client_group = append(client_group, client)
 							content.Target = client_group
 							fmt.Println("接收消息的用户（最终）", client_group)
-							for _, data := range datas {
-								fmt.Println("要发送的消息", data)
-								content.Data = data
-								c.serv.broadcast <- &content
-							}
+							fmt.Println("要发送的消息", res)
+							content.Data = res
+							c.serv.broadcast <- &content
 						}
 					} else {
 						// 用户离线
-						for _, data := range datas {
-							offline_msg := &db.OffLineMsg{
-								SendFrom: m.From,
-								SendTo:   user_token,
-								SendTime: time.Now(),
-								Content:  data,
-							}
-							db.SaveUserOffLineMsg(offline_msg)
+						offline_msg := &db.OffLineMsg{
+							SendFrom: m.From,
+							SendTo:   user_token,
+							SendTime: time.Now(),
+							Content:  res,
 						}
+						db.SaveUserOffLineMsg(offline_msg)
 					}
 				}
 			}
