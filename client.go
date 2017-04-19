@@ -74,6 +74,8 @@ func (c *Client) readPump() {
 				var content Content
 				content.From = c
 				content.Target = broadcast_group
+				content.Data = "用户登录成功"
+				c.serv.broadcast <- &content
 				offline_msgs := db.GetUserOffLineMsg(m.From)
 				for _, offline_msg := range offline_msgs {
 					content.Data = offline_msg.Content
@@ -134,6 +136,7 @@ func (c *Client) readPump() {
 				from_user := db.GetUserByToken(m.From)
 				to_user := db.GetUserByToken(m.Target)
 				broadcast_group := make([]*Client, 0)
+				broadcast_group = append(broadcast_group, c)
 				var content Content
 				content.From = c
 				content.Data = from_user.Name + "对" + to_user.Name + "说：" + m.Data
@@ -209,7 +212,6 @@ func (c *Client) readPump() {
 				content.From = c
 				content.Data = user.Name + "离开了" + group.Name + "分组"
 				for client, _ := range c.serv.clients {
-					group = db.GetGroupByToken(m.Data)
 					for _, user_token := range group.Users {
 						if db.IsUserOnline(user_token) {
 							// 用户在线
