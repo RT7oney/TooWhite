@@ -2,8 +2,8 @@ package main
 
 import (
 	"TooWhite/db"
+	"TooWhite/log"
 	"encoding/json"
-	"fmt"
 )
 
 type Server struct {
@@ -30,7 +30,7 @@ func (serv *Server) run() {
 		select {
 		case client := <-serv.register:
 			serv.clients[client] = true
-			fmt.Println("把客户端放在线程池里", serv.clients)
+			log.NewLog("hub.go-33:把客户端放在线程池里", serv.clients)
 		case client := <-serv.unregister:
 			if _, ok := serv.clients[client]; ok {
 				delete(serv.clients, client)

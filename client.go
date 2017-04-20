@@ -3,11 +3,10 @@ package main
 import (
 	"TooWhite/db"
 	"TooWhite/helper"
+	"TooWhite/log"
 	// "bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
-	"log"
 	"net/http"
 	"time"
 )
@@ -53,7 +52,7 @@ func (c *Client) readPump() {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("error: %v", err)
+				log.NewLog("client.go-56:", err)
 			}
 			break
 		}
@@ -61,7 +60,7 @@ func (c *Client) readPump() {
 		var res Response
 		var user_token_group []string
 		json.Unmarshal(message, &m)
-		fmt.Println("读取到的Msg结构体", m)
+		log.NewLog("client.go-64:读取到的Msg结构体", m)
 		if m.From != "" {
 			if m.MsgType == 0 {
 				// 加入用户进入在线状态
@@ -131,7 +130,7 @@ func (c *Client) readPump() {
 			var client_group []*Client
 			var content Content
 			content.From = c
-			fmt.Println("接收消息的用户", user_token_group)
+			log.NewLog("client.go-133:接收消息的用户tokens", user_token_group)
 			for client, _ := range c.serv.clients {
 				for _, user_token := range user_token_group {
 					if db.IsUserOnline(user_token) {
@@ -139,8 +138,8 @@ func (c *Client) readPump() {
 						if client.uid == user_token {
 							client_group = append(client_group, client)
 							content.Target = client_group
-							fmt.Println("接收消息的用户（最终）", client_group)
-							fmt.Println("要发送的消息", res)
+							log.NewLog("client.go-141:接收消息的用户（客户端）", client_group)
+							log.NewLog("client.go-142:要发送的消息", res)
 							content.Data = res
 							c.serv.broadcast <- &content
 						}
@@ -205,7 +204,7 @@ func (c *Client) writePump() {
 func serveWs(serv *Server, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.NewLog("client.go-207:", err)
 		return
 	}
 	client := &Client{serv: serv, conn: conn, send: make(chan []byte, 256)}

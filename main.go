@@ -2,7 +2,7 @@ package main
 
 import (
 	// "fmt"
-	"log"
+	"TooWhite/log"
 	"net/http"
 )
 
@@ -32,6 +32,6 @@ func main() {
 	})
 	err := http.ListenAndServe(":1234", nil)
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.NewLog("ListenAndServe-ERROR: ", err)
 	}
 }
