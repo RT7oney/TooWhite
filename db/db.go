@@ -4,6 +4,8 @@ import (
 	"TooWhite/conf"
 	// "errors"
 	"fmt"
+	// "github.com/garyburd/redigo/redis"
+	// "github.com/astaxie/beego/cache"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"time"
