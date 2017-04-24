@@ -103,13 +103,26 @@ func (c *Client) readPump() {
 				// 私聊
 				from_user := db.GetUserByToken(m.From)
 				to_user := db.GetUserByToken(m.Target)
-				user_token_group = []string{m.From, m.Target}
 				res.Msg = from_user.Name + "对" + to_user.Name + "说：" + m.Data
+				//
+				// 使用redis获取名称
+				// from_user_name := db.GetUserNameByToken(m.From)
+				// to_user_name := db.GetUserNameByToken(m.Target)
+				// res.Msg = from_user_name + "对" + to_user_name + "说：" + m.Data
+				//
+				user_token_group = []string{m.From, m.Target}
 			} else if m.MsgType == 4 {
 				// 群聊
 				from_user := db.GetUserByToken(m.From)
 				to_group := db.GetGroupByToken(m.Target)
 				res.Msg = from_user.Name + "在群" + to_group.Name + "说：" + m.Data
+				//
+				// 使用redis获取名称
+				// from_user_name := db.GetUserNameByToken(m.From)
+				// to_group_name := db.GetGroupNameByToken(m.Target)
+				// to_group := db.GetGroupUsersByToken(m.Target)
+				// res.Msg = from_user_name + "在群" + to_group_name + "说：" + m.Data
+				//
 				user_token_group = to_group.Users
 			} else if m.MsgType == 5 {
 				// 删除分组

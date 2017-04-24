@@ -4,7 +4,7 @@ import (
 	"TooWhite/conf"
 	// "errors"
 	"fmt"
-	// "github.com/garyburd/redigo/redis"
+	"github.com/garyburd/redigo/redis"
 	// "github.com/astaxie/beego/cache"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -42,6 +42,11 @@ func newDB() *mgo.Session {
 	return session
 }
 
+func newRedis() redis.Conn {
+	rs, _ := redis.Dial("tcp", conf.REDIS_HOST+":"+conf.REDIS_PORT)
+	return rs
+}
+
 func UserJoin(user *User) *User {
 	session := newDB()
 	defer session.Close()
@@ -63,6 +68,11 @@ func UserJoin(user *User) *User {
 			"isonline": 1,
 			"name":     user.Name,
 		}})
+	// 把用户名称放入redis
+	// rs := newRedis()
+	// rs.Do("SELECT", conf.REDIS_USER_DB)
+	// defer rs.Close()
+	// rs.Do("SET", user.Token, user.Name)
 	return &result
 }
 
@@ -82,6 +92,14 @@ func NewGroup(group *Group) {
 	if err != nil {
 		fmt.Println("NewGroup-84", err)
 	}
+	// 把分组名称放入redis
+	// rs := newRedis()
+	// rs.Do("SELECT", conf.REDIS_GROUP_DB)
+	// defer rs.Close()
+	// rs.Do("SET", group.Token, group.Name)
+	// for _, val := range group.Users {
+	// 	rs.Do("LPUSH", group.Token, val)
+	// }
 }
 
 func DelGroup(user_token, group_token string) bool {
@@ -96,6 +114,13 @@ func DelGroup(user_token, group_token string) bool {
 				UserOffGroup(member, group_token)
 			}
 			c.Remove(bson.M{"token": group_token})
+			// 删除redis中的分组
+			// rs := newRedis()
+			// defer rs.Close()
+			// rs.Do("SELECT", conf.REDIS_GROUP_DB)
+			// rs.Do("DEL", group_token)
+			// rs.Do("SELECT", conf.REDIS_GROUP_USER_DB)
+			// rs.Do("DEL", group_token)
 			return true
 		}
 	}
@@ -119,6 +144,11 @@ func UserJoinGroup(user_token, group_token string) {
 			bson.M{"$push": bson.M{
 				"groups": group_token,
 			}})
+		// 用户加入redis分组
+		// rs := newRedis()
+		// defer rs.Close()
+		// rs.Do("SELECT", conf.REDIS_GROUP_USER_DB)
+		// rs.Do("LPUSH", group_token, user_token)
 		if err != nil {
 			fmt.Println("GroupJoin-105", err)
 		}
@@ -145,6 +175,15 @@ func UserOffGroup(user_token, group_token string) {
 			bson.M{"$pull": bson.M{
 				"groups": group_token,
 			}})
+		// 用户离开redis分组
+		// rs := newRedis()
+		// defer rs.Close()
+		// rs.Do("SELECT", conf.REDIS_GROUP_USER_DB)
+		// rs.Do("DEL", group_token)
+		// group := GetGroupByToken(group_token)
+		// for _, val := range group.Users {
+		// 	rs.Do("LPUSH", group.Token, val)
+		// }
 		if err != nil {
 			fmt.Println("UserOffGroup-105", err)
 		}
@@ -168,6 +207,7 @@ func IsUserInGroup(user_token, group_token string) bool {
 	return false
 }
 
+// 用户mongodb是否在线
 func IsUserOnline(token string) bool {
 	session := newDB()
 	defer session.Close()
@@ -180,6 +220,23 @@ func IsUserOnline(token string) bool {
 	return false
 }
 
+// 用户redis是否在线
+func IsRedisUserOnline(token string) bool {
+	rs := newRedis()
+	defer rs.Close()
+	rs.Do("SELECT", conf.REDIS_USER_DB)
+	reply, err := redis.Values(rs.Do("GET", token))
+	res, err := redis.String(reply, err)
+	if err != nil {
+		return false
+	}
+	if res == "" {
+		return false
+	}
+	return true
+}
+
+// 根据用户token获取用户
 func GetUserByToken(token string) *User {
 	session := newDB()
 	defer session.Close()
@@ -192,6 +249,16 @@ func GetUserByToken(token string) *User {
 	return &result
 }
 
+// redis根据用户token获取用户姓名
+func GetUserNameByToken(token string) string {
+	rs := newRedis()
+	defer rs.Close()
+	rs.Do("SELECT", conf.REDIS_USER_DB)
+	reply, err := redis.Values(rs.Do("GET", token))
+	res, err := redis.String(reply, err)
+	return res
+}
+
 func GetGroupByToken(token string) *Group {
 	session := newDB()
 	defer session.Close()
@@ -202,6 +269,26 @@ func GetGroupByToken(token string) *Group {
 		fmt.Println("GetGroupByToken-125", err)
 	}
 	return &result
+}
+
+// redis根据用户token获取用户姓名
+func GetGroupNameByToken(token string) string {
+	rs := newRedis()
+	defer rs.Close()
+	rs.Do("SELECT", conf.REDIS_GROUP_DB)
+	reply, err := redis.Values(rs.Do("GET", token))
+	res, err := redis.String(reply, err)
+	return res
+}
+
+// redis根据用户token获取分组
+func GetGroupUsersByToken(token string) []string {
+	rs := newRedis()
+	defer rs.Close()
+	rs.Do("SELECT", conf.REDIS_GROUP_USER_DB)
+	reply, err := redis.Values(rs.Do("GET", token))
+	res, err := redis.Strings(reply, err)
+	return res
 }
 
 func GetGroupsByUserToken(token string) []string {
@@ -236,6 +323,11 @@ func UserOffLine(user_token string) {
 		bson.M{"$set": bson.M{
 			"isonline": 0,
 		}})
+	// 删除redis里面的数据
+	// rs := newRedis()
+	// defer rs.Close()
+	// rs.Do("SELECT", conf.REDIS_USER_DB)
+	// rs.Do("DEL", user_token)
 }
 
 func GetUserOffLineMsg(user_token string) []OffLineMsg {
