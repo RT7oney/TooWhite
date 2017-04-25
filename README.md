@@ -23,7 +23,7 @@ $ go run *.go
 ### url:
 ws://xx.xxx.xx.xx:1234
 
-###  支持格式
+###  请求格式
     json
 
 ###  请求参数
@@ -41,7 +41,7 @@ so = new WebSocket(url);
 so.send('{"MsgType":0,"From":"XXXXX","Target":"XXXX","Data":"XXXX"}');
 ```
 
-###  注意事项
+###  请求类型
 ##### 用户加入
 * msgtype 值为 0
 * from 传入用户在系统中的唯一标识ID
@@ -195,4 +195,5 @@ function userJoinGroup() {
 </script>
 </html>
 ```
+
 
