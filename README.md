@@ -1,6 +1,10 @@
 # TooWhite
 一个websocket消息分组和个人的广播系统，使用mongodb作为后端数据库服务支持
 
+## 系统整体流程图
+
+![alt text](https://raw.github.com/RT7oney/TooWhite/process.png)
+
 ## 安装
 
 本系统使用mongodb作为数据库服务，需要[安装mongodb](http://www.runoob.com/mongodb/mongodb-window-install.html)
@@ -195,5 +199,3 @@ function userJoinGroup() {
 </script>
 </html>
 ```
-
-
