@@ -3,7 +3,7 @@
 
 ## 系统整体流程图
 
-![alt text](https://raw.github.com/RT7oney/TooWhite/process.png)
+![alt text](process.png)
 
 ## 安装
 
