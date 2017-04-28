@@ -30,7 +30,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		serveWs(serv, w, r)
 	})
-	err := http.ListenAndServe(":1234", nil)
+	err := http.ListenAndServe(":12345", nil)
 	if err != nil {
 		log.NewLog("ListenAndServe-ERROR: ", err)
 	}

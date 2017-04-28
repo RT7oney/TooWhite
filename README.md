@@ -25,7 +25,7 @@ $ go run *.go
 ## 接口调用
 
 ### url:
-ws://xx.xxx.xx.xx:1234
+ws://xx.xxx.xx.xx:12345
 
 ###  请求格式
     json
