@@ -1,9 +1,9 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"fmt"
-	"io"
+	"golang.org/x/net/websocket"
+	// "io"
 	"log"
 	"net/http"
 )
@@ -36,8 +36,7 @@ func main() {
 	//
 	http.Handle("/", websocket.Handler(ChatWith))
 
-	fmt.Println(" listen on port 8001 ")
-	fmt.Println(" visit http://127.0.0.1:8001/chat with web browser(recommend: chrome) ")
+	fmt.Println(" listen on port 9999 ")
 
 	if err := http.ListenAndServe(":9999 ", nil); err != nil {
 		log.Fatal(" ListenAndServe: ", err)
